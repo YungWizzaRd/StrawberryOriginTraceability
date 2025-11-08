@@ -1,0 +1,49 @@
+# Strawberry Origin Traceability (Blockchain Project)
+
+A blockchain-based system for tracking the **origin and history of food products**, such as Latvian strawberries, from **farm → processor → retailer**.  
+The goal is to ensure authenticity and transparency for consumers while protecting verified local producers.
+
+---
+
+## Overview
+
+This project demonstrates how blockchain technology can support **food traceability**.  
+Each participant (farmer, processor, retailer) records actions on the blockchain, forming a transparent and tamper-proof product history.
+
+Consumers can then view a product’s full journey using a simple web interface.
+
+---
+
+## Tech Stack
+
+- **Solidity** – Smart contract for product traceability  
+- **Hardhat** – Development and testing framework  
+- **Ethers.js** – Frontend blockchain interaction  
+- **MetaMask** – Wallet for signing blockchain transactions  
+- **HTML / CSS / JavaScript** – Simple user interface  
+
+---
+
+## Setup Instructions
+
+### Clone the repository
+git clone https://github.com/yourusername/strawberry-traceability.git
+cd strawberry-traceability
+
+### Install dependencies
+npm install
+
+### Compile the smart contract
+npx hardhat compile
+
+### Start a local blockchain
+npx hardhat node
+Keep this terminal open – it runs your blockchain locally.
+
+### Deploy the contract
+Open a new terminal tab and run:
+npx hardhat run scripts/deploy.js --network localhost
+
+frontend/app.js
+Paste your deployed contract address:
+const contractAddress = "0xABC123...DEF";
