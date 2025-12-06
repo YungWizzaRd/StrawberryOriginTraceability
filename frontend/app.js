@@ -172,6 +172,7 @@ const contractABI = [
 const ETHERS_CDN_URLS = [
   "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js",
   "https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js",
+  "https://cdn.ethers.io/lib/ethers-5.7.umd.min.js",
 ];
 
 let ethersLoadPromise;
@@ -271,9 +272,11 @@ async function createProduct() {
 
   alert("✅ Product added successfully!");
   QRCode.toCanvas(document.getElementById("qrcode"), id);
+  return true;
   } catch (err) {
     console.error("❌ Error in createProduct:", err);
     alert("❌ Failed to add product. Open browser console (F12 → Console) to see details.");
+    return false;
   }
 }
 
@@ -304,14 +307,23 @@ async function getHistory() {
     return;
   }
 
+  try{
   const contract = await getContract();
   const history = await contract.getHistory(id);
 
-  let text = "";
-  history.forEach((h) => {
-    text += `${h.participant} → ${h.eventType} on ${h.date}\n`;
-  });
+    let text = "";
+    history.forEach((h) => {
+      text += `${h.participant} → ${h.eventType} on ${h.date}\n`;
+    });
 
   document.getElementById("output").textContent =
     text || "No history found for this ID.";
+    document.getElementById("output").textContent =
+      text || "No history found for this ID.";
+  } catch (err) {
+    console.error("❌ Error fetching history:", err);
+    alert(
+      "❌ Unable to read product history. Check that ethers.js loaded, the contract is deployed on the selected network, and the product ID exists."
+    );
+  }
 }

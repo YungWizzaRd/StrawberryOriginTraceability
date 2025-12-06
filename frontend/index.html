@@ -92,10 +92,11 @@
 
     // Combined function → runs MetaMask logic from app.js + QR generator
     async function addProduct() {
+      let created = false;
       try {
         // Call blockchain createProduct() from app.js (MetaMask)
         if (typeof createProduct === "function") {
-          await createProduct();
+          created = await createProduct();
         } else {
           console.warn("createProduct() not found in app.js");
         }
@@ -103,8 +104,10 @@
         console.error("Blockchain error:", err);
       }
 
-      // Always generate QR code afterward
-      await generateQR();
+      // Only generate QR code when product creation succeeds
+      if (created) {
+        await generateQR();
+      }
     }
 
     // Print QR Code
