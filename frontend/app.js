@@ -1,7 +1,6 @@
 // ===== CONFIGURATION =====
 const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 const contractABI = [
-  [
     {
       "anonymous": false,
       "inputs": [
@@ -167,7 +166,6 @@ const contractABI = [
       "stateMutability": "nonpayable",
       "type": "function"
     }
-  ]
 ];
 
 // ---------- CONNECT TO CONTRACT ----------
@@ -179,9 +177,9 @@ async function getContract() {
 
   await window.ethereum.request({ method: "eth_requestAccounts" });
 
-  // ethers v6 syntax:
-  const provider = new ethers.BrowserProvider(window.ethereum);
-  const signer = await provider.getSigner();
+  // ethers v5 syntax:
+  const provider = new ethers.providers.Web3Provider(window.ethereum);
+  const signer = provider.getSigner();
 
   // Optional: verify correct network (Hardhat localhost)
   const network = await provider.getNetwork();
@@ -194,6 +192,7 @@ async function getContract() {
 
 // ---------- CREATE PRODUCT ----------
 async function createProduct() {
+  try{
   const id = document.getElementById("pid").value.trim();
   const name = document.getElementById("pname").value.trim();
   const origin = document.getElementById("porigin").value.trim();
@@ -211,6 +210,10 @@ async function createProduct() {
 
   alert("✅ Product added successfully!");
   QRCode.toCanvas(document.getElementById("qrcode"), id);
+  } catch (err) {
+    console.error("❌ Error in createProduct:", err);
+    alert("❌ Failed to add product. Open browser console (F12 → Console) to see details.");
+  }
 }
 
 // ---------- UPDATE PRODUCT ----------
