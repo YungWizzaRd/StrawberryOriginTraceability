@@ -252,6 +252,25 @@ async function getContract() {
   return new ethersLib.Contract(contractAddress, contractABI, signer);
 }
 
+// Public/read-only contract instance that does not prompt the user to connect
+async function getReadOnlyContract() {
+  // Ensure ethers.js is available from the CDN script or load it lazily.
+  const ethersLib = await ensureEthersLoaded().catch((err) => {
+    console.error("ethers load error", err);
+    alert("❌ Ethers.js failed to load. Please check your connection and refresh the page.");
+    return null;
+  });
+  if (!ethersLib) {
+    throw new Error("ethers.js not available on window");
+  }
+
+  const provider = window.ethereum
+    ? new ethersLib.providers.Web3Provider(window.ethereum)
+    : new ethersLib.providers.JsonRpcProvider("http://127.0.0.1:8545");
+
+  return new ethersLib.Contract(contractAddress, contractABI, provider);
+}
+
 // ADDED FOR ROLE-BASED ACCESS
 function checkRole(allowedRoles) {
   const session = getCurrentUser();
@@ -385,7 +404,7 @@ async function publicGetHistory() {
     return;
   }
   try {
-    const contract = await getContract();
+    const contract = await getReadOnlyContract();
     const history = await contract.getHistory(id);
     let text = "";
     history.forEach((h) => {
@@ -593,6 +612,7 @@ function renderRoute() {
   if (!session) {
     window.history.replaceState({}, "", "/");
     setVisibility("loginSection", true);
+    setVisibility("consumerSection", true);
     return;
   }
 
