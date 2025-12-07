@@ -15,7 +15,7 @@
       <input id="pid" class="form-control mb-2" placeholder="Product ID">
       <input id="pname" class="form-control mb-2" placeholder="Product Name">
       <input id="porigin" class="form-control mb-2" placeholder="Origin (Farm)">
-      <input id="pdate" class="form-control mb-2" placeholder="Harvest Date">
+      <input id="pdate" type="date" class="form-control mb-2" aria-label="Harvest Date">
       <input id="pproducer" class="form-control mb-2" placeholder="Producer Name">
       <button class="btn btn-primary" onclick="addProduct()">Add Product</button>
       <div id="qrcode" class="mt-3 text-center"></div>
@@ -44,13 +44,23 @@
 
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
   <script src="app.js"></script>
-
   <script>
     // Persistent product ID counter
     let productCounter = localStorage.getItem("productCounter")
       ? parseInt(localStorage.getItem("productCounter"))
       : 0;
 
+          function formatDateString(dateValue) {
+      if (!dateValue) return "";
+      const parsed = new Date(dateValue);
+      return Number.isNaN(parsed.getTime())
+        ? dateValue
+        : parsed.toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          });
+    }
     document.addEventListener("DOMContentLoaded", () => {
       productCounter++;
       const newId = "P" + String(productCounter).padStart(4, "0");
@@ -58,6 +68,10 @@
       pidField.value = newId;
       pidField.readOnly = true;
       localStorage.setItem("productCounter", productCounter);
+      const harvestDateField = document.getElementById("pdate");
+      if (harvestDateField && !harvestDateField.value) {
+        harvestDateField.value = new Date().toISOString().split("T")[0];
+      }
     });
 
     // Function to create QR only
@@ -81,7 +95,8 @@
         const canvas = document.createElement("canvas");
         qrContainer.appendChild(canvas);
 
-        const qrText = `Product ID: ${pid}\nName: ${pname}\nOrigin: ${porigin}\nHarvest Date: ${pdate}\nProducer: ${pproducer}`;
+        const readableDate = formatDateString(pdate) || pdate;
+        const qrText = `Product ID: ${pid}\nName: ${pname}\nOrigin: ${porigin}\nHarvest Date: ${readableDate}\nProducer: ${pproducer}`;
         await QRCode.toCanvas(canvas, qrText);
         document.getElementById("printQR").style.display = "inline-block";
       } catch (err) {
