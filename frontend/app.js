@@ -481,36 +481,63 @@ function formatDateString(dateValue) {
       });
 }
 
-// ADDED HARDCODED LOGIN
-const defaultUsers = {
-  farmer: { role: "Farmer", password: "test" },
-  warehouse: { role: "WarehouseWorker", password: "test" },
-  retailer: { role: "Retailer", password: "test" },
-  admin: { role: "Admin", password: "test" },
-};
+// USER MANAGEMENT SYSTEM - Backend API Integration
+const API_BASE = '';  // Same origin
 
-function getUserDirectory() {
-  const stored = localStorage.getItem("userDirectory");
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch (err) {
-      console.warn("Failed to parse stored user directory", err);
-    }
+async function isFirstUser() {
+  try {
+    const response = await fetch(`${API_BASE}/api/is-first-user`);
+    const data = await response.json();
+    return data.isFirstUser;
+  } catch (err) {
+    console.error("Error checking first user:", err);
+    return false;
   }
-  return { ...defaultUsers };
 }
 
-function persistUserDirectory(dir) {
-  localStorage.setItem("userDirectory", JSON.stringify(dir));
+async function getUserDirectory() {
+  try {
+    const response = await fetch(`${API_BASE}/api/users`);
+    const data = await response.json();
+    return data.success ? data.users : {};
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    return {};
+  }
 }
 
-function authenticate(username, password) {
-  const directory = getUserDirectory();
-  const record = directory[username];
-  if (!record) return null;
-  if (password !== record.password) return null;
-  return { username, role: record.role };
+async function registerUser(username, password, role) {
+  if (!username || !password || !role) {
+    return { success: false, message: "All fields are required." };
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/api/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, role })
+    });
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    console.error("Error registering user:", err);
+    return { success: false, message: "Failed to register. Please try again." };
+  }
+}
+
+async function authenticate(username, password) {
+  try {
+    const response = await fetch(`${API_BASE}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    console.error("Error authenticating:", err);
+    return { success: false, message: "Failed to login. Please try again." };
+  }
 }
 
 function saveSession(user) {
@@ -557,33 +584,180 @@ function setVisibility(sectionId, visible) {
   el.style.display = visible ? "block" : "none";
 }
 
-function populateUserTable() {
+async function removeUser(username) {
+  if (confirm(`Are you sure you want to remove user "${username}"?`)) {
+    try {
+      const response = await fetch(`${API_BASE}/api/users/${username}`, {
+        method: 'DELETE'
+      });
+      const data = await response.json();
+      if (data.success) {
+        await populateUserTable();
+        await populatePendingTable();
+        alert(`User "${username}" has been removed.`);
+      } else {
+        alert(`Failed to remove user: ${data.message}`);
+      }
+    } catch (err) {
+      console.error("Error removing user:", err);
+      alert("Failed to remove user. Please try again.");
+    }
+  }
+}
+
+async function populateUserTable() {
   const tableBody = document.querySelector("#userTable tbody");
   if (!tableBody) return;
   tableBody.innerHTML = "";
-  const directory = getUserDirectory();
-  Object.entries(directory).forEach(([username, info]) => {
+  const directory = await getUserDirectory();
+  const currentUser = getCurrentUser();
+
+  const entries = Object.entries(directory).filter(([_, info]) => info.approved === true);
+
+  if (entries.length === 0) {
+    const emptyRow = document.createElement("tr");
+    emptyRow.innerHTML = '<td colspan="4" class="text-center text-muted">No approved users</td>';
+    tableBody.appendChild(emptyRow);
+    return;
+  }
+
+  entries.forEach(([username, info]) => {
     const tr = document.createElement("tr");
+
+    // Username column
+    const usernameTd = document.createElement("td");
+    usernameTd.textContent = username;
+    tr.appendChild(usernameTd);
+
+    // Role column
+    const roleTd = document.createElement("td");
+    roleTd.textContent = info.role;
+    tr.appendChild(roleTd);
+
+    // Update Role column with dropdown
+    const updateRoleTd = document.createElement("td");
     const roleSelect = document.createElement("select");
     roleSelect.className = "form-select form-select-sm";
     ["Farmer", "WarehouseWorker", "Retailer", "Admin"].forEach((role) => {
       const opt = document.createElement("option");
       opt.value = role;
-      opt.textContent = role;
+      opt.textContent = role === "WarehouseWorker" ? "Warehouse Worker" : role;
       if (role === info.role) opt.selected = true;
       roleSelect.appendChild(opt);
     });
-    roleSelect.addEventListener("change", () => {
-      const updated = getUserDirectory();
-      updated[username] = { ...updated[username], role: roleSelect.value };
-      persistUserDirectory(updated);
-      alert(`Role for ${username} updated to ${roleSelect.value}`);
+    roleSelect.addEventListener("change", async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/users/${username}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: roleSelect.value })
+        });
+        const data = await response.json();
+        if (data.success) {
+          populateUserTable();
+          alert(`Role for ${username} updated to ${roleSelect.value}`);
+        } else {
+          alert(`Failed to update role: ${data.message}`);
+        }
+      } catch (err) {
+        console.error("Error updating role:", err);
+        alert("Failed to update role. Please try again.");
+      }
+    });
+    updateRoleTd.appendChild(roleSelect);
+    tr.appendChild(updateRoleTd);
+
+    // Actions column
+    const actionsTd = document.createElement("td");
+    // Prevent removing yourself
+    if (currentUser && currentUser.username !== username) {
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "btn btn-sm btn-danger";
+      removeBtn.textContent = "Remove";
+      removeBtn.addEventListener("click", () => removeUser(username));
+      actionsTd.appendChild(removeBtn);
+    } else {
+      actionsTd.innerHTML = '<span class="text-muted small">(You)</span>';
+    }
+    tr.appendChild(actionsTd);
+
+    tableBody.appendChild(tr);
+  });
+}
+
+async function populatePendingTable() {
+  const tableBody = document.querySelector("#pendingUserTable tbody");
+  if (!tableBody) return;
+  tableBody.innerHTML = "";
+  const directory = await getUserDirectory();
+  const pendingEntries = Object.entries(directory).filter(
+    ([_, info]) => info.approved === false
+  );
+
+  if (pendingEntries.length === 0) {
+    const emptyRow = document.createElement("tr");
+    emptyRow.innerHTML = '<td colspan="3" class="text-center text-muted">No pending requests</td>';
+    tableBody.appendChild(emptyRow);
+    return;
+  }
+
+  pendingEntries.forEach(([username, info]) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${username}</td><td>${info.role}</td>`;
+    const actionTd = document.createElement("td");
+
+    // Approve button
+    const approveBtn = document.createElement("button");
+    approveBtn.className = "btn btn-sm btn-success me-2";
+    approveBtn.textContent = "Approve";
+    approveBtn.addEventListener("click", async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/users/${username}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ approved: true })
+        });
+        const data = await response.json();
+        if (data.success) {
+          populatePendingTable();
+          populateUserTable();
+          alert(`User "${username}" has been approved.`);
+        } else {
+          alert(`Failed to approve user: ${data.message}`);
+        }
+      } catch (err) {
+        console.error("Error approving user:", err);
+        alert("Failed to approve user. Please try again.");
+      }
     });
 
-    tr.innerHTML = `<td>${username}</td><td>${info.role}</td>`;
-    const td = document.createElement("td");
-    td.appendChild(roleSelect);
-    tr.appendChild(td);
+    // Reject button
+    const rejectBtn = document.createElement("button");
+    rejectBtn.className = "btn btn-sm btn-danger";
+    rejectBtn.textContent = "Reject";
+    rejectBtn.addEventListener("click", async () => {
+      if (confirm(`Reject user "${username}"? This will delete their account request.`)) {
+        try {
+          const response = await fetch(`${API_BASE}/api/users/${username}`, {
+            method: 'DELETE'
+          });
+          const data = await response.json();
+          if (data.success) {
+            populatePendingTable();
+            alert(`User "${username}" has been rejected and removed.`);
+          } else {
+            alert(`Failed to reject user: ${data.message}`);
+          }
+        } catch (err) {
+          console.error("Error rejecting user:", err);
+          alert("Failed to reject user. Please try again.");
+        }
+      }
+    });
+
+    actionTd.appendChild(approveBtn);
+    actionTd.appendChild(rejectBtn);
+    tr.appendChild(actionTd);
     tableBody.appendChild(tr);
   });
 }
@@ -594,9 +768,16 @@ function renderRoute() {
   const publicMatch = path.match(/^\/(trace|product)\/([^/]+)/i);
 
   // reset all sections
-  ["loginSection", "farmerSection", "warehouseSection", "retailerSection", "adminSection", "consumerSection"].forEach((id) =>
-    setVisibility(id, false)
-  );
+    [
+    "loginSection",
+    "signupSection",
+    "publicOverview",
+    "farmerSection",
+    "warehouseSection",
+    "retailerSection",
+    "adminSection",
+    "consumerSection",
+  ].forEach((id) => setVisibility(id, false));
 
   if (publicMatch) {
     setVisibility("consumerSection", true);
@@ -612,6 +793,8 @@ function renderRoute() {
   if (!session) {
     window.history.replaceState({}, "", "/");
     setVisibility("loginSection", true);
+    setVisibility("signupSection", true);
+    setVisibility("publicOverview", true);
     setVisibility("consumerSection", true);
     return;
   }
@@ -655,6 +838,7 @@ function renderRoute() {
       setVisibility("adminSection", true);
       setVisibility("loginSection", false);
       populateUserTable();
+      populatePendingTable();
       break;
     default:
       setVisibility("loginSection", true);
@@ -684,18 +868,62 @@ function setupLogin() {
   const form = document.getElementById("loginForm");
   const statusEl = document.getElementById("loginStatus");
   if (!form) return;
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const username = document.getElementById("loginUsername").value.trim();
     const password = document.getElementById("loginPassword").value;
-    const result = authenticate(username, password);
-    if (!result) {
-      statusEl.textContent = "Invalid credentials";
+    const result = await authenticate(username, password);
+    if (!result.success) {
+      statusEl.textContent = result.message;
+      statusEl.classList.remove("text-success");
+      statusEl.classList.add("text-danger");
       return;
     }
     statusEl.textContent = "";
-    saveSession(result);
-    navigateForRole(result.role);
+    saveSession(result.user);
+    navigateForRole(result.user.role);
+  });
+}
+
+function setupSignup() {
+  const form = document.getElementById("signupForm");
+  const statusEl = document.getElementById("signupStatus");
+  const firstUserNotice = document.getElementById("firstUserNotice");
+
+  if (!form) return;
+
+  // Show first user notice if no users exist
+  async function updateFirstUserNotice() {
+    if (firstUserNotice) {
+      const first = await isFirstUser();
+      firstUserNotice.style.display = first ? "block" : "none";
+    }
+  }
+
+  updateFirstUserNotice();
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const username = document.getElementById("signupUsername").value.trim();
+    const password = document.getElementById("signupPassword").value;
+    const role = document.getElementById("signupRole").value;
+    const result = await registerUser(username, password, role);
+
+    statusEl.textContent = result.message;
+    statusEl.classList.remove("text-danger", "text-success");
+    statusEl.classList.add(result.success ? "text-success" : "text-danger");
+
+    if (result.success) {
+      form.reset();
+      updateFirstUserNotice();
+
+      // If first user (auto-approved admin), show login prompt
+      if (result.autoApproved) {
+        setTimeout(() => {
+          statusEl.textContent = "Please login with your credentials.";
+        }, 2000);
+      }
+    }
   });
 }
 
@@ -704,6 +932,7 @@ window.addEventListener("popstate", renderRoute);
 // Initialize UI
 window.addEventListener("DOMContentLoaded", () => {
   setupLogin();
+  setupSignup();
   renderRoute();
   // Print QR Code
   const printButton = document.getElementById("printQR");

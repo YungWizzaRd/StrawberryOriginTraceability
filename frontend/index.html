@@ -12,17 +12,47 @@
     <div id="loginSection" class="card p-3 mb-4">
       <h5>Login</h5>
       <form id="loginForm" class="row g-2">
-        <div class="col-md-4">
-          <input id="loginUsername" class="form-control" placeholder="Username (farmer/warehouse/retailer/admin)" required>
+        <div class="col-md-5">
+          <input id="loginUsername" class="form-control" placeholder="Username" required>
         </div>
-        <div class="col-md-4">
-          <input id="loginPassword" type="password" class="form-control" placeholder="Password (test)" required>
+        <div class="col-md-5">
+          <input id="loginPassword" type="password" class="form-control" placeholder="Password" required>
         </div>
-        <div class="col-md-4 d-flex align-items-center gap-2">
-          <button type="submit" class="btn btn-primary">Login</button>
-          <span id="loginStatus" class="text-danger small"></span>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-primary w-100">Login</button>
         </div>
       </form>
+      <div id="loginStatus" class="mt-2 small"></div>
+    </div>
+
+     <div id="signupSection" class="card p-3 mb-4">
+      <h5>Create an Account</h5>
+      <div id="firstUserNotice" class="alert alert-info mb-3" style="display:none;">
+        <strong>Welcome!</strong> You are the first user. You will automatically become an Administrator.
+      </div>
+      <form id="signupForm" class="row g-2">
+        <div class="col-md-3">
+          <input id="signupUsername" class="form-control" placeholder="Username" required>
+        </div>
+        <div class="col-md-3">
+          <input id="signupPassword" type="password" class="form-control" placeholder="Password (min 4 chars)" required minlength="4">
+        </div>
+        <div class="col-md-3">
+          <select id="signupRole" class="form-select" required>
+            <option value="">Choose a role</option>
+            <option value="Farmer">Farmer</option>
+            <option value="WarehouseWorker">Warehouse Worker</option>
+            <option value="Retailer">Retailer</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-success w-100">Sign Up</button>
+        </div>
+      </form>
+      <div id="signupStatus" class="mt-2 small"></div>
+      <p class="small text-muted mb-0 mt-2">
+        <strong>Note:</strong> New accounts require admin approval before login.
+      </p>
     </div>
 
     <!-- Farmer Dashboard -->
@@ -102,10 +132,19 @@
         </div>
       </div>
       <div class="card p-3 mb-3">
+        <h6>Pending user approvals</h6>
+        <div class="table-responsive">
+          <table class="table table-bordered" id="pendingUserTable">
+            <thead><tr><th>Username</th><th>Requested Role</th><th>Status</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card p-3 mb-3">
         <h6>Manage Users & Roles</h6>
         <div class="table-responsive">
           <table class="table table-bordered" id="userTable">
-            <thead><tr><th>Username</th><th>Role</th><th>Update Role</th></tr></thead>
+            <thead><tr><th>Username</th><th>Current Role</th><th>Update Role</th><th>Actions</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
