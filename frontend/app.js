@@ -349,39 +349,43 @@ function updateRetailerProduct() {
 // ---------- GET PRODUCT HISTORY ----------
 async function getHistory() {
   const id = document.getElementById("gid").value.trim();
+  const outputEl = document.getElementById("output");
+
   if (!id) {
     alert("⚠️ Enter a product ID first.");
     return;
   }
 
-  try{
-  const contract = await getContract();
-  const history = await contract.getHistory(id);
+  try {
+    const contract = await getContract();
+    const history = await contract.getHistory(id);
 
     let text = "";
     history.forEach((h) => {
       text += `${h.participant} → ${h.eventType} on ${h.date}\n`;
     });
 
-  document.getElementById("output").textContent =
-    text || "No history found for this ID.";
-    document.getElementById("output").textContent =
-      text || "No history found for this ID.";
+    outputEl.textContent = text || "No history found for this ID.";
+    outputEl.style.display = "block"; // Show the results
   } catch (err) {
     console.error("❌ Error fetching history:", err);
     alert(
       "❌ Unable to read product history. Check that ethers.js loaded, the contract is deployed on the selected network, and the product ID exists."
     );
+    outputEl.style.display = "none"; // Hide on error
   }
 }
 
 // ADDED FOR ROLE-BASED ACCESS: admin history helper
 async function adminGetHistory() {
   const id = document.getElementById("adminTraceId").value.trim();
+  const outputEl = document.getElementById("adminOutput");
+
   if (!id) {
     alert("⚠️ Enter a product ID first.");
     return;
   }
+
   try {
     const contract = await getContract();
     const history = await contract.getHistory(id);
@@ -389,10 +393,13 @@ async function adminGetHistory() {
     history.forEach((h) => {
       text += `${h.participant} → ${h.eventType} on ${h.date}\n`;
     });
-    document.getElementById("adminOutput").textContent = text || "No history found for this ID.";
+
+    outputEl.textContent = text || "No history found for this ID.";
+    outputEl.style.display = "block"; // Show the results
   } catch (err) {
     console.error("❌ Error fetching admin history:", err);
     alert("❌ Unable to load history for admin view.");
+    outputEl.style.display = "none"; // Hide on error
   }
 }
 
@@ -494,7 +501,7 @@ function formatDateString(dateValue) {
   const parsed = new Date(dateValue);
   return Number.isNaN(parsed.getTime())
     ? dateValue
-    : parsed.toLocaleDateString(undefined, {
+    : parsed.toLocaleDateString('en-GB', {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -780,88 +787,10 @@ async function populatePendingTable() {
   });
 }
 
-function renderRoute() {
-  const path = window.location.pathname;
-  const session = getCurrentUser();
-  const publicMatch = path.match(/^\/(trace|product)\/([^/]+)/i);
-
-  // reset all sections
-    [
-    "loginSection",
-    "signupSection",
-    "publicOverview",
-    "farmerSection",
-    "warehouseSection",
-    "retailerSection",
-    "adminSection",
-    "consumerSection",
-  ].forEach((id) => setVisibility(id, false));
-
-  if (publicMatch) {
-    setVisibility("consumerSection", true);
-    const batchId = decodeURIComponent(publicMatch[2]);
-    const field = document.getElementById("publicTraceId");
-    if (field) {
-      field.value = batchId;
-    }
-    publicGetHistory();
-    return;
-  }
-
-  if (!session) {
-    window.history.replaceState({}, "", "/");
-    setVisibility("loginSection", true);
-    setVisibility("signupSection", true);
-    setVisibility("publicOverview", true);
-    setVisibility("consumerSection", true);
-    return;
-  }
-
-  const roleRoutes = {
-    "/farmer": "Farmer",
-    "/warehouse": "WarehouseWorker",
-    "/retailer": "Retailer",
-    "/admin": "Admin",
-  };
-
-  const requiredRole = roleRoutes[path];
-  if (!requiredRole) {
-    // default redirect to their dashboard
-    navigateForRole(session.role);
-    return;
-  }
-
-  if (session.role !== requiredRole) {
-    alert("🚫 Forbidden: This route is not available for your role.");
-    navigateForRole(session.role);
-    return;
-  }
-
-  // show appropriate section
-  switch (session.role) {
-    case "Farmer":
-      setVisibility("farmerSection", true);
-      setVisibility("loginSection", false);
-      prepareFarmerForm();
-      break;
-    case "WarehouseWorker":
-      setVisibility("warehouseSection", true);
-      setVisibility("loginSection", false);
-      break;
-    case "Retailer":
-      setVisibility("retailerSection", true);
-      setVisibility("loginSection", false);
-      break;
-    case "Admin":
-      setVisibility("adminSection", true);
-      setVisibility("loginSection", false);
-      populateUserTable();
-      populatePendingTable();
-      break;
-    default:
-      setVisibility("loginSection", true);
-  }
-}
+// OLD ROUTING FUNCTION - NO LONGER NEEDED (using separate HTML files now)
+// function renderRoute() {
+//   ... (disabled)
+// }
 
 function prepareFarmerForm() {
   // Persistent product ID counter
@@ -945,13 +874,14 @@ function setupSignup() {
   });
 }
 
-window.addEventListener("popstate", renderRoute);
+// Removed old routing - now using separate HTML pages
+// window.addEventListener("popstate", renderRoute);
 
 // Initialize UI
 window.addEventListener("DOMContentLoaded", () => {
   setupLogin();
   setupSignup();
-  renderRoute();
+  // renderRoute(); // Disabled - using separate pages now
   // Print QR Code
   const printButton = document.getElementById("printQR");
   if (printButton) {

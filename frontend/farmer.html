@@ -4,18 +4,24 @@
   <meta charset="UTF-8">
   <title>Farmer Dashboard - Strawberry Traceability</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="style.css" rel="stylesheet">
 </head>
-<body class="bg-light p-4">
-  <div class="container">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1 class="mb-0">🍓 Farmer Dashboard</h1>
-      <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-success fs-6">Farmer</span>
-        <span id="farmerUsername" class="text-muted"></span>
+<body class="bg-light">
+  <!-- Navbar -->
+  <nav class="navbar navbar-light bg-white shadow-sm">
+    <div class="container-fluid px-4">
+      <span class="navbar-brand mb-0 h1">🍓 Strawberry Origin Traceability</span>
+      <div class="d-flex align-items-center gap-3">
+        <span class="badge bg-success">Farmer</span>
+        <span id="farmerUsername" class="text-muted small"></span>
         <button class="btn btn-outline-secondary btn-sm" onclick="logout()">Logout</button>
       </div>
     </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container py-4">
+    <h2 class="mb-4">Farmer Dashboard</h2>
 
     <!-- Add New Product Card -->
     <div class="card shadow-sm mb-4">
@@ -59,7 +65,7 @@
           <input id="gid" class="form-control" placeholder="Enter Product ID">
           <button class="btn btn-info" onclick="getHistory()">Get History</button>
         </div>
-        <pre id="output" class="bg-light p-3 rounded" style="min-height: 100px;"></pre>
+        <pre id="output" class="bg-light p-3 rounded" style="min-height: 100px; display:none;"></pre>
       </div>
     </div>
   </div>
