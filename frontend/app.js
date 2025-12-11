@@ -288,20 +288,39 @@ async function createProduct() {
   const id = document.getElementById("pid").value.trim();
   const name = document.getElementById("pname").value.trim();
   const origin = document.getElementById("porigin").value.trim();
-  const date = document.getElementById("pdate").value.trim();
+  const dateInput = document.getElementById("pdate").value.trim();
   const producer = document.getElementById("pproducer").value.trim();
 
-  if (!id || !name || !origin || !date || !producer) {
+  if (!id || !name || !origin || !dateInput || !producer) {
     alert("⚠️ Please fill in all fields.");
     return;
   }
+
+  // Convert DD/MM/YYYY to YYYY-MM-DD for blockchain storage
+  const date = convertDDMMYYYYtoISO(dateInput);
 
   const contract = await getContract();
   const tx = await contract.createProduct(id, name, origin, date, producer);
   await tx.wait();
 
+  // Increment counter only after successful blockchain transaction
+  let productCounter = localStorage.getItem("productCounter")
+    ? parseInt(localStorage.getItem("productCounter"))
+    : 0;
+  productCounter++;
+  localStorage.setItem("productCounter", productCounter);
+
   alert("✅ Product added successfully!");
   QRCode.toCanvas(document.getElementById("qrcode"), id);
+
+  // Clear form fields
+  document.getElementById("pname").value = "";
+  document.getElementById("porigin").value = "";
+  document.getElementById("pproducer").value = "";
+
+  // Refresh form to show next available ID
+  prepareFarmerForm();
+
   return true;
   } catch (err) {
     console.error("❌ Error in createProduct:", err);
@@ -318,12 +337,15 @@ async function updateProductFromFields(fieldMap, allowedRoles) {
   const id = document.getElementById(fieldMap.id)?.value.trim();
   const participant = document.getElementById(fieldMap.participant)?.value.trim();
   const event = document.getElementById(fieldMap.event)?.value.trim();
-  const date = document.getElementById(fieldMap.date)?.value.trim();
+  const dateInput = document.getElementById(fieldMap.date)?.value.trim();
 
-  if (!id || !participant || !event || !date) {
+  if (!id || !participant || !event || !dateInput) {
     alert("⚠️ Please fill in all fields.");
     return;
   }
+
+  // Convert DD/MM/YYYY to YYYY-MM-DD for blockchain storage
+  const date = convertDDMMYYYYtoISO(dateInput);
 
   const contract = await getContract();
   const tx = await contract.updateProduct(id, participant, event, date);
@@ -362,7 +384,8 @@ async function getHistory() {
 
     let text = "";
     history.forEach((h) => {
-      text += `${h.participant} → ${h.eventType} on ${h.date}\n`;
+      const formattedDate = formatDateString(h.date) || h.date;
+      text += `${h.participant} → ${h.eventType} on ${formattedDate}\n`;
     });
 
     outputEl.textContent = text || "No history found for this ID.";
@@ -391,7 +414,8 @@ async function adminGetHistory() {
     const history = await contract.getHistory(id);
     let text = "";
     history.forEach((h) => {
-      text += `${h.participant} → ${h.eventType} on ${h.date}\n`;
+      const formattedDate = formatDateString(h.date) || h.date;
+      text += `${h.participant} → ${h.eventType} on ${formattedDate}\n`;
     });
 
     outputEl.textContent = text || "No history found for this ID.";
@@ -426,7 +450,8 @@ async function publicGetHistory() {
     if (history && history.length > 0) {
       let text = "";
       history.forEach((h) => {
-        text += `${h.participant} → ${h.eventType} on ${h.date}\n`;
+        const formattedDate = formatDateString(h.date) || h.date;
+        text += `${h.participant} → ${h.eventType} on ${formattedDate}\n`;
       });
       outputEl.textContent = text;
       if (resultsSection) resultsSection.style.display = "block";
@@ -506,6 +531,23 @@ function formatDateString(dateValue) {
         month: "long",
         day: "numeric",
       });
+}
+
+// Convert Date object to DD/MM/YYYY format
+function formatDateToDDMMYYYY(date) {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+// Convert DD/MM/YYYY to YYYY-MM-DD for blockchain storage
+function convertDDMMYYYYtoISO(ddmmyyyy) {
+  if (!ddmmyyyy) return "";
+  const parts = ddmmyyyy.split('/');
+  if (parts.length !== 3) return ddmmyyyy;
+  const [day, month, year] = parts;
+  return `${year}-${month}-${day}`;
 }
 
 // USER MANAGEMENT SYSTEM - Backend API Integration
@@ -793,21 +835,20 @@ async function populatePendingTable() {
 // }
 
 function prepareFarmerForm() {
-  // Persistent product ID counter
+  // Show the next available product ID (without incrementing yet)
   let productCounter = localStorage.getItem("productCounter")
     ? parseInt(localStorage.getItem("productCounter"))
     : 0;
-  productCounter++;
-  const newId = "P" + String(productCounter).padStart(4, "0");
+  const nextId = "P" + String(productCounter + 1).padStart(4, "0");
   const pidField = document.getElementById("pid");
   if (pidField) {
-    pidField.value = newId;
+    pidField.value = nextId;
     pidField.readOnly = true;
   }
-  localStorage.setItem("productCounter", productCounter);
+
   const harvestDateField = document.getElementById("pdate");
   if (harvestDateField && !harvestDateField.value) {
-    harvestDateField.value = new Date().toISOString().split("T")[0];
+    harvestDateField.value = formatDateToDDMMYYYY(new Date());
   }
 }
 

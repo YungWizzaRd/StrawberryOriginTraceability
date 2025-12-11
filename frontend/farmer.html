@@ -42,7 +42,8 @@
           </div>
           <div class="col-md-6">
             <label for="pdate" class="form-label">Harvest Date</label>
-            <input id="pdate" type="date" class="form-control" required>
+            <input id="pdate" type="text" class="form-control" placeholder="DD/MM/YYYY" pattern="\d{2}/\d{2}/\d{4}" required>
+            <small class="text-muted">Format: DD/MM/YYYY (e.g., 11/12/2025)</small>
           </div>
           <div class="col-md-12">
             <label for="pproducer" class="form-label">Producer Name</label>

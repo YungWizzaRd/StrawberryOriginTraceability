@@ -49,7 +49,8 @@
           </div>
           <div class="col-md-6">
             <label for="retailerDate" class="form-label">Date</label>
-            <input id="retailerDate" type="date" class="form-control" required>
+            <input id="retailerDate" type="text" class="form-control" placeholder="DD/MM/YYYY" pattern="\d{2}/\d{2}/\d{4}" required>
+            <small class="text-muted">Format: DD/MM/YYYY</small>
           </div>
         </div>
         <button class="btn btn-success btn-lg w-100 mt-4" onclick="updateRetailerProduct()">Update Product</button>
@@ -74,8 +75,12 @@
       }
       document.getElementById('retailerUsername').textContent = session.username;
 
-      // Set today's date
-      document.getElementById('retailerDate').value = new Date().toISOString().split('T')[0];
+      // Set today's date in DD/MM/YYYY format
+      const today = new Date();
+      const day = String(today.getDate()).padStart(2, '0');
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const year = today.getFullYear();
+      document.getElementById('retailerDate').value = `${day}/${month}/${year}`;
     });
   </script>
 </body>
